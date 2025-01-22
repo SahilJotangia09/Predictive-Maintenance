@@ -30,3 +30,61 @@ This project implements a RESTful API for predictive analysis in manufacturing o
 git clone <your-repo-link>
 cd <repo-name>
 
+Endpoints
+1. Upload Endpoint
+URL: /upload
+Method: POST
+Input: A CSV file containing manufacturing data.
+Example Request in Postman:
+Select POST method.
+Add the URL: http://localhost:8000/upload.
+In the Body tab, select form-data, set the key as file, and upload the CSV file.
+Response:
+json
+Copy
+Edit
+{
+    "message": "Data uploaded successfully"
+}
+2. Train Endpoint
+URL: /train
+Method: POST
+Input: None.
+Example Request in Postman:
+Select POST method.
+Add the URL: http://localhost:8000/train.
+Response:
+json
+Copy
+Edit
+{
+    "accuracy": 0.89,
+    "f1_score": 0.88
+}
+3. Predict Endpoint
+URL: /predict
+Method: POST
+Input: JSON object with fields like Temperature and Run_Time.
+Single Prediction
+Example Input:
+json
+Copy
+Edit
+{
+    "data": [
+        {
+            "Temperature": 80,
+            "Run_Time": 120
+        }
+    ]
+}
+Response:
+json
+Copy
+Edit
+[
+    {
+        "Downtime": "Yes",
+        "Confidence": 0.85
+    }
+]
