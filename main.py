@@ -1,74 +1,92 @@
-import os
+# Install required libraries
+# !pip install fastapi uvicorn nest_asyncio pandas scikit-learn joblib
+
+from fastapi import FastAPI, UploadFile, File
 import pandas as pd
+from pydantic import BaseModel
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score
-from fastapi import FastAPI, UploadFile, File
-from pydantic import BaseModel
+from sklearn.metrics import accuracy_score
+import joblib
+import nest_asyncio
+from fastapi.responses import JSONResponse
 import uvicorn
 
 # Initialize FastAPI app
 app = FastAPI()
 
-# Global variables
+# Global variables to store the dataset and model
 data = None
 model = None
 
-# Define input schema for prediction
-class PredictInput(BaseModel):
-    Temperature: float
-    Run_Time: int
-
-# Endpoint: Upload dataset
+# Upload Endpoint
 @app.post("/upload")
-async def upload_dataset(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...)):
     global data
-    if file.filename.endswith('.csv'):
-        data = pd.read_csv("predictive_maintenance.csv")
-        if {'Machine_ID', 'Temperature', 'Run_Time', 'Downtime_Flag'}.issubset(data.columns):
-            return {"message": "Dataset uploaded successfully!"}
-        else:
-            data = None
-            return {"error": "Dataset does not contain required columns."}
-    return {"error": "Please upload a valid CSV file."}
+    try:
+        # Save the uploaded file to disk
+        with open("uploaded_dataset.csv", "wb") as f:
+            f.write(file.file.read())
+        
+        # Load the dataset into memory
+        data = pd.read_csv("uploaded_dataset.csv")
+        return {"message": "Dataset uploaded successfully", "columns": list(data.columns)}
+    except Exception as e:
+        return {"error": str(e)}
 
-# Endpoint: Train model
+# Train Endpoint
 @app.post("/train")
 async def train_model():
     global data, model
     if data is None:
         return {"error": "No dataset uploaded. Please upload a dataset first."}
+    try:
+        # Extract features and target
+        X = data[['Air temperature [K]', 'Tool wear [min]']]  # Update based on dataset
+        y = data['Target']
 
-    # Prepare data
-    X = data[["Temperature", "Run_Time"]]
-    y = data["Downtime_Flag"].map({"Yes": 1, "No": 0})  # Convert labels to binary
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Train-test split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Train model
-    model = LogisticRegression()
-    model.fit(X_train, y_train)
+        # Train Logistic Regression model
+        model = LogisticRegression()
+        model.fit(X_train, y_train)
 
-    # Evaluate model
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
+        # Evaluate the model
+        accuracy = accuracy_score(y_test, model.predict(X_test))
+        joblib.dump(model, "model.pkl")  # Save the trained model
 
-    return {"message": "Model trained successfully!", "accuracy": accuracy, "f1_score": f1}
+        return {"message": "Model trained successfully", "accuracy": accuracy}
+    except KeyError as e:
+        return {"error": f"Missing column: {e}"}
+    except Exception as e:
+        return {"error": str(e)}  # Catch and return any other errors
 
-# Endpoint: Predict downtime
+# Predict Input Schema
+class PredictInput(BaseModel):
+    AirTemp: float
+    ToolWear: int
+
+# Predict Endpoint
 @app.post("/predict")
-async def predict_downtime(input_data: PredictInput):
+async def predict(input_data: PredictInput):
     global model
     if model is None:
-        return {"error": "Model not trained. Please train the model first."}
+        return {"error": "No model trained. Please train a model first."}
+
+    # Convert input data to DataFrame
+    input_df = pd.DataFrame([input_data.dict()])
 
     # Make prediction
-    input_df = pd.DataFrame([input_data.dict()])
     prediction = model.predict(input_df)[0]
     confidence = max(model.predict_proba(input_df)[0])
 
-    return {"Downtime": "Yes" if prediction == 1 else "No", "Confidence": round(confidence, 2)}
+    return {
+        "Downtime": "Yes" if prediction == 1 else "No",
+        "Confidence": round(confidence, 2)
+    }
 
-# Run the app
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# Run FastAPI in Jupyter Notebook
+nest_asyncio.apply()  # Allow FastAPI to run inside Jupyter Notebook
+uvicorn.run(app, host="127.0.0.1", port=8000)
+
