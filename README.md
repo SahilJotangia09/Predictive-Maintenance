@@ -1,90 +1,153 @@
-# Predictive Analysis for Manufacturing Operations
+End-to-End Machine Learning Project using FastAPI
 
-## Overview
-This project implements a RESTful API for predictive analysis in manufacturing operations. The API predicts machine downtime based on manufacturing data using a supervised machine learning model. It includes endpoints to upload data, train the model, and make predictions.
+This repository contains an end-to-end machine learning project built with FastAPI. It provides APIs to upload a dataset, train a machine learning model, and make predictions based on the trained model. The project uses Logistic Regression for modeling and supports interaction via Postman or any API testing tool.
 
----
+Features
 
-## Features
-- Upload a CSV file containing manufacturing data.
-- Train a machine learning model on the uploaded data.
-- Make predictions on machine downtime based on input parameters.
-- Supports batch and single predictions.
+Upload Dataset: Upload a CSV dataset via the /upload endpoint.
 
----
+Train Model: Train a Logistic Regression model on the uploaded dataset via the /train endpoint.
 
-## Requirements
-- Python 3.8+
-- Required Python packages (see `requirements.txt`):
-  - FastAPI or Flask (API framework)
-  - scikit-learn (for machine learning model)
-  - pandas (for data handling)
-  - numpy (for numerical computations)
+Make Predictions: Use the /predict endpoint to predict outcomes based on the trained model.
 
----
+Model Persistence: Save and load the trained model using joblib.
 
-## Setup Instructions
+Prerequisites
 
-### 1. Clone the Repository 
-```bash
-git clone <your-repo-link>
-cd <repo-name>
+Ensure you have the following installed:
 
-Endpoints
-1. Upload Endpoint
-URL: /upload
-Method: POST
-Input: A CSV file containing manufacturing data.
-Example Request in Postman:
-Select POST method.
-Add the URL: http://localhost:8000/upload.
-In the Body tab, select form-data, set the key as file, and upload the CSV file.
-Response:
-json
-Copy
-Edit
+Python 3.8+
+
+Pip
+
+Install the required libraries using the command:
+
+pip install fastapi uvicorn nest_asyncio pandas scikit-learn joblib
+
+Folder Structure
+
+project-directory/
+|-- app.py               # Main application file
+|-- uploaded_dataset.csv # Dataset (uploaded at runtime)
+|-- model.pkl            # Trained model (saved after training)
+|-- README.md            # Project documentation
+
+API Endpoints
+
+1. Upload Dataset
+
+Endpoint: POST /upload
+
+Description: Upload a CSV dataset. The dataset is expected to contain the following columns:
+
+Air temperature [K]
+
+Tool wear [min]
+
+Target
+
+Request Example:
+
+curl -X POST "http://127.0.0.1:8000/upload" -F "file=@path/to/your/dataset.csv"
+
+Response Example:
+
 {
-    "message": "Data uploaded successfully"
+  "message": "Dataset uploaded successfully",
+  "columns": ["Air temperature [K]", "Tool wear [min]", "Target"]
 }
-2. Train Endpoint
-URL: /train
-Method: POST
-Input: None.
-Example Request in Postman:
-Select POST method.
-Add the URL: http://localhost:8000/train.
-Response:
-json
-Copy
-Edit
+
+2. Train Model
+
+Endpoint: POST /train
+
+Description: Train a Logistic Regression model using the uploaded dataset.
+
+Request Example:
+
+curl -X POST "http://127.0.0.1:8000/train"
+
+Response Example:
+
 {
-    "accuracy": 0.89,
-    "f1_score": 0.88
+  "message": "Model trained successfully",
+  "accuracy": 0.85
 }
-3. Predict Endpoint
-URL: /predict
-Method: POST
-Input: JSON object with fields like Temperature and Run_Time.
-Single Prediction
-Example Input:
-json
-Copy
-Edit
+
+3. Make Predictions
+
+Endpoint: POST /predict
+
+Description: Predict the downtime based on input features.
+
+Input Schema:
+
+Field
+
+Type
+
+Description
+
+AirTemp
+
+float
+
+Air temperature in Kelvin
+
+ToolWear
+
+int
+
+Tool wear in minutes
+
+Request Example:
+
+curl -X POST "http://127.0.0.1:8000/predict" \
+-H "Content-Type: application/json" \
+-d '{"AirTemp": 300.5, "ToolWear": 120}'
+
+Response Example:
+
 {
-    "data": [
-        {
-            "Temperature": 80,
-            "Run_Time": 120
-        }
-    ]
+  "Downtime": "Yes",
+  "Confidence": 0.92
 }
-Response:
-json
-Copy
-Edit
-[
-    {
-        "Downtime": "Yes",
-        "Confidence": 0.85
-    }
-]
+
+How to Run the Application
+
+Clone the repository:
+
+git clone https://github.com/your-repo-name.git
+cd your-repo-name
+
+Install the required dependencies:
+
+pip install -r requirements.txt
+
+Start the FastAPI server:
+
+python app.py
+
+Open your browser or Postman and interact with the endpoints at:
+
+http://127.0.0.1:8000
+
+Example Workflow
+
+Upload the Dataset: Use the /upload endpoint to upload your dataset.
+
+Train the Model: Use the /train endpoint to train the Logistic Regression model.
+
+Make Predictions: Use the /predict endpoint to make predictions based on the input data.
+
+Technologies Used
+
+FastAPI: For building the RESTful API.
+
+scikit-learn: For training the Logistic Regression model.
+
+Pandas: For data manipulation and preprocessing.
+
+Joblib: For saving and loading the trained model.
+
+Postman: For testing the API endpoints.
